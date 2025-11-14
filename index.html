@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Komar's Flip the Card</title>
+    
+    <!-- Load Pixel Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <!-- Load Vue.js Framework -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+        /* --- 1. Reset & Base --- */
+        :root {
+            --font-pixel: 'Press Start 2P', cursive;
+            
+            --color-primary: #FF6B35;
+            --color-primary-dark: #C73E1D;
+            --color-secondary: #F7931E;
+            --color-highlight: #FDC830;
+            --color-brown: #8B4513;
+            --color-green-match: #7CB342;
+            --color-text-light: #FFFFFF;
+            --color-text-dark: #2c2c2c;
+            --color-card-front-bg: #f5eeda; /* Warm light beige */
+            
+            --color-overlay: rgba(0, 0, 0, 0.6);
+            --color-overlay-game: rgba(0, 0, 0, 0.7); /* Darker overlay for game */
+            
+            --color-timer-good: #7CB342;
+            --color-timer-warn: #F7931E;
+            --color-timer-danger: #C73E1D;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-pixel);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* No scrolling */
+            background-color: var(--color-text-dark);
+            color: var(--color-text-light);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        /* --- 2. App Container & States --- */
+        #app {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            /* REVISI: Pastikan background menutupi layar tanpa repeat */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.5s ease-in-out;
+        }
+        
+        .state-landing {
+            background-image: url('./bg_landing.png');
+        }
+        .state-game {
+            background-image: url('./bg_game.png');
+        }
+        .state-success, .state-fail {
+            background-image: url('./bg_game.png');
+        }
+
+        /* Dark shadow overlay */
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-overlay);
+            z-index: 1;
+            transition: background-color 0.5s ease;
+        }
+        
+        /* REVISI: Overlay lebih gelap untuk state game */
+        .state-game.app-container::before {
+            background-color: var(--color-overlay-game);
+        }
+
+        .game-state, .modal-overlay {
+            z-index: 2;
+        }
+
+        .game-state {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2vh 2vw;
+        }
+
+        /* --- 3. Pixel Button Component --- */
+        .pixel-button {
+            font-family: var(--font-pixel);
+            font-size: clamp(16px, 3vw, 24px);
+            color: var(--color-text-light);
+            background-color: var(--color-primary);
+            border: 4px solid var(--color-text-dark);
+            box-shadow: 
+                inset -4px -4px 0px 0px var(--color-primary-dark),
+                4px 4px 0px 0px var(--color-text-dark);
+            padding: 15px 30px;
+            cursor: pointer;
+            text-shadow: 2px 2px var(--color-text-dark);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            image-rendering: pixelated;
+        }
+
+        .pixel-button:hover, .pixel-button:focus {
+            transform: translate(2px, 2px);
+            box-shadow: 
+                inset -2px -2px 0px 0px var(--color-primary-dark),
+                2px 2px 0px 0px var(--color-text-dark);
+            outline: none;
+        }
+
+        .pixel-button:active {
+            transform: translate(4px, 4px);
+            box-shadow: inset 0px 0px 0px 0px var(--color-primary-dark);
+        }
+
+        .pixel-button:disabled,
+        .pixel-button.disabled {
+            background-color: #888;
+            box-shadow: 
+                inset -4px -4px 0px 0px #555,
+                4px 4px 0px 0px var(--color-text-dark);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .pixel-button-small {
+            font-size: clamp(12px, 2vw, 16px);
+            padding: 10px 20px;
+        }
+        
+        /* REVISI: Tombol Reset Baru */
+        .reset-button {
+            font-size: 10px;
+            padding: 6px 10px;
+            background-color: var(--color-primary-dark); /* Red/danger color */
+            box-shadow: 
+                inset -2px -2px 0px 0px #8B0000, /* Darker red */
+                2px 2px 0px 0px var(--color-text-dark);
+            margin-left: 15px;
+            color: var(--color-text-light);
+            text-shadow: 1px 1px var(--color-text-dark);
+            border-width: 2px;
+        }
+        .reset-button:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 
+                inset -1px -1px 0px 0px #8B0000,
+                1px 1px 0px 0px var(--color-text-dark);
+        }
+        .reset-button:active {
+            transform: translate(2px, 2px);
+            box-shadow: inset 0px 0px 0px 0px #8B0000;
+        }
+
+        /* --- 4. Landing State --- */
+        .state-landing {
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        .game-title {
+            font-size: clamp(24px, 6vw, 48px);
+            color: var(--color-text-light);
+            text-shadow: 4px 4px var(--color-primary-dark);
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        /* REVISI: Kontainer untuk info attempts & reset */
+        .landing-attempts-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-overlay-light);
+            padding: 10px 15px;
+            border-radius: 4px;
+            border: 2px solid var(--color-brown);
+        }
+        .attempts-info-text {
+             font-size: clamp(10px, 2.5vw, 14px);
+        }
+
+
+        /* --- 5. Game State (Portrait & Landscape) --- */
+        
+        /* REVISI: Kontainer layout utama untuk game */
+        .game-layout-container {
+            display: flex;
+            flex-direction: column; /* Default: Portrait */
+            width: 100%;
+            height: 100%;
+            max-width: 500px; /* Max width for portrait */
+            margin: 0 auto;
+            padding: 2vh 4vw;
+            justify-content: space-between;
+        }
+        
+        /* Kolom UI (kiri/kanan di landscape, atas/bawah di portrait) */
+        .game-ui {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Kolom Kiri / Header */
+        .game-ui-left {
+            width: 100%;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .game-header {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .header-info, .header-attempts {
+            font-size: clamp(10px, 2.5vw, 14px);
+            background: var(--color-overlay-light);
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 2px solid var(--color-brown);
+        }
+        .info-icon {
+            width: clamp(28px, 6vw, 40px);
+            height: clamp(28px, 6vw, 40px);
+            cursor: pointer;
+            image-rendering: pixelated;
+            transition: transform 0.2s;
+        }
+        .info-icon:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Kolom Tengah (Grid & Timer) */
+        .game-main-column {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* margin: 2vh 0; */
+        }
+        
+        /* Kolom Kanan / Footer */
+        .game-ui-right {
+            width: 100%;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .game-footer {
+            display: flex;
+        }
+        .match-counter {
+            font-size: clamp(12px, 3vw, 16px);
+            background: var(--color-overlay-light);
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 2px solid var(--color-brown);
+        }
+        .deco-images {
+            display: flex;
+            gap: 10px;
+        }
+        .deco-image {
+            width: clamp(30px, 8vw, 50px);
+            height: auto;
+            image-rendering: pixelated;
+        }
+        .deco-spatula { transform: rotate(-30deg); }
+        .deco-chef-hat { transform: rotate(20deg); }
+
+        /* Timer */
+        .timer-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .timer-text {
+            font-size: clamp(16px, 4vw, 20px);
+            color: var(--color-highlight);
+        }
+        .timer-progress-bar {
+            width: 100%;
+            height: 15px;
+            background-color: var(--color-text-dark);
+            border: 2px solid var(--color-brown);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .timer-progress {
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-timer-good);
+            transition: width 0.2s linear, background-color 0.5s ease;
+        }
+
+        /* Card Grid */
+        .card-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* Default 3x4 */
+            grid-template-rows: repeat(4, 1fr);
+            gap: clamp(8px, 2vw, 12px);
+            aspect-ratio: 3 / 4; /* Default 3:4 */
+            max-height: 70vh;
+        }
+
+        /* Helpers untuk menyembunyikan/menampilkan elemen di layout berbeda */
+        .landscape-only { display: none; }
+        .portrait-only { display: block; }
+
+        /* Card Styling */
+        .card {
+            perspective: 1000px;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            aspect-ratio: 5 / 7;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .card.is-flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            image-rendering: pixelated;
+            border: 2px solid var(--color-brown);
+            overflow: hidden;
+        }
+        
+        /* REVISI: Card back tanpa border atau BG color tambahan */
+        .card-back {
+            background-image: url('./card_back.png');
+            background-color: transparent;
+            border: none;
+        }
+        
+        .card-front {
+            /* REVISI: Ganti BG putih ke krem muda */
+            background-color: var(--color-card-front-bg); 
+            transform: rotateY(180deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .card-image {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+        
+        /* Matched State */
+        .card.is-matched .card-inner {
+            transform: rotateY(180deg) scale(1.05);
+            pointer-events: none;
+        }
+        .card.is-matched .card-front {
+            background-color: var(--color-green-match);
+            box-shadow: 0 0 15px 5px var(--color-green-match);
+        }
+        .card.is-locked {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+
+        /* --- 6. Modals (Instructions & End Game) --- */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-overlay);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: var(--color-brown);
+            border: 4px solid var(--color-text-dark);
+            box-shadow: 
+                inset -6px -6px 0px 0px #5a2d0b,
+                6px 6px 0px 0px var(--color-text-dark);
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            text-align: center;
+            color: var(--color-text-light);
+        }
+        .modal-close-button {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 30px;
+            height: 30px;
+            background-color: var(--color-primary-dark);
+            border: 3px solid var(--color-text-dark);
+            cursor: pointer;
+            box-shadow: 3px 3px 0px 0px var(--color-text-dark);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .modal-close-button:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0px 0px var(--color-text-dark);
+        }
+        .modal-close-icon {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+        .modal-title {
+            font-size: clamp(18px, 4vw, 24px);
+            color: var(--color-highlight);
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        .modal-text {
+            font-size: clamp(12px, 2.5vw, 14px);
+            line-height: 1.8;
+            text-align: left;
+            margin-bottom: 25px;
+        }
+        .modal-text ul { list-style-position: inside; padding-left: 10px; }
+        .modal-text li { margin-bottom: 10px; }
+
+        /* End Game Modal */
+        .end-game-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .treasure-chest {
+            width: 100px;
+            height: 100px;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            image-rendering: pixelated;
+        }
+        .treasure-closed {
+            background-image: url('./treasure_chest_closed.png');
+            animation: bounce 0.8s infinite alternate;
+        }
+        .treasure-open {
+            background-image: url('./treasure_chest_open.png');
+            animation: pulse 1s infinite;
+        }
+        .voucher-image {
+            width: 150px;
+            height: auto;
+            image-rendering: pixelated;
+            margin-top: 10px;
+            animation: reveal 0.5s ease-out;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        @keyframes reveal {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* --- 7. Confetti Animation --- */
+        #confetti-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 99;
+            pointer-events: none;
+        }
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 16px;
+            background: #f00;
+            opacity: 0;
+            animation: fall 5s linear infinite;
+        }
+        @keyframes fall {
+            0% {
+                transform: translate(0, -100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(200px, 120vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* --- 8. Responsive (Landscape) --- */
+        /* REVISI: Tata letak landscape baru yang lebih baik */
+        @media (orientation: landscape) and (max-height: 600px) {
+            .state-game {
+                padding: 2vh 3vw;
+            }
+            .game-layout-container {
+                flex-direction: row; /* Layout baris */
+                max-width: 1000px; /* Lebar max di landscape */
+                align-items: center;
+                gap: 2vw;
+            }
+            
+            /* Kolom Kiri */
+            .game-ui-left {
+                width: 25%;
+                height: 100%;
+                flex-direction: column;
+                justify-content: space-around;
+            }
+            .game-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            /* Kolom Tengah */
+            .game-main-column {
+                width: 46%; /* Sedikit lebih kecil untuk memberi ruang */
+                height: 100%;
+                justify-content: center;
+                margin: 0;
+            }
+            
+            /* Kolom Kanan */
+            .game-ui-right {
+                width: 25%;
+                height: 100%;
+                flex-direction: column;
+                justify-content: space-around;
+            }
+            .game-footer {
+                margin: 0;
+            }
+            .deco-images {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .deco-image {
+                width: clamp(40px, 10vw, 70px);
+            }
+
+            /* Grid 4x3 di Landscape */
+            .card-grid {
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+                aspect-ratio: 4 / 3;
+                max-height: 90vh; /* Pastikan pas di layar */
+            }
+
+            /* Pindahkan timer ke kiri & atur visibilitas */
+            .landscape-only { display: flex; }
+            .portrait-only { display: none; }
+        }
+        
+        /* Ukuran landscape yang lebih kecil (ponsel) */
+        @media (orientation: landscape) and (max-height: 450px) {
+            .header-info, .header-attempts, .match-counter {
+                font-size: 10px;
+                padding: 5px 8px;
+            }
+            .timer-text { font-size: 14px; }
+            .timer-progress-bar { height: 10px; }
+            .info-icon { width: 24px; height: 24px; }
+            .deco-image { width: 30px; }
+            .game-layout-container { gap: 1.5vw; }
+            .game-ui-left { width: 28%; }
+            .game-main-column { width: 42%; }
+            .game-ui-right { width: 28%; }
+        }
+
+        /* --- 9. Image Preloader --- */
+        .preloader {
+            position: absolute;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+            z-index: -1;
+            opacity: 0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Main Vue App Container -->
+    <div id="app" :class="appClasses" v-cloak>
+
+        <!-- Image Preloader -->
+        <div class="preloader">
+            <img src="./bg_landing.png" alt="Preload">
+            <img src="./bg_game.png" alt="Preload">
+            <img src="./card_back.png" alt="Preload">
+            <img src="./card_item_chicken.png" alt="Preload">
+            <img src="./card_item_egg.png" alt="Preload">
+            <img src="./card_item_garlic.png" alt="Preload">
+            <img src="./card_item_kecap.png" alt="Preload">
+            <img src="./card_item_rice.png" alt="Preload">
+            <img src="./card_item_shallot.png" alt="Preload">
+            <img src="./deco_chef_hat.png" alt="Preload">
+            <img src="./deco_spatula.png" alt="Preload">
+            <img src="./icon_close.png" alt="Preload">
+            <img src="./icon_info.png" alt="Preload">
+            <img src="./reward_voucher.png" alt="Preload">
+            <img src="./treasure_chest_closed.png" alt="Preload">
+            <img src="./treasure_chest_open.png" alt="Preload">
+        </div>
+
+        <!-- Confetti Container -->
+        <div id="confetti-container" v-if="gameState === 'success' && showConfetti"></div>
+
+        <!-- STATE 1: Landing Page -->
+        <div class="game-state state-landing" v-if="gameState === 'landing'">
+            <h1 class="game-title">The Komar's<br>Flip the Card</h1>
+            <button class="pixel-button" @click="startGame" :disabled="attemptsLeft <= 0">
+                {{ attemptsLeft > 0 ? 'START GAME' : 'NO ATTEMPTS LEFT' }}
+            </button>
+            
+            <!-- REVISI: Kontainer untuk Attempts & Reset -->
+            <div class="landing-attempts-container" v-if="attemptsLeft > 0">
+                <span class="attempts-info-text">Attempts Left: {{ attemptsLeft }}/{{ totalAttempts }}</span>
+                <button class="reset-button" @click="resetAttempts">RESET</button>
+            </div>
+        </div>
+
+        <!-- STATE 2: Main Game Screen -->
+        <!-- REVISI: Struktur HTML baru untuk layout adaptif -->
+        <div class="game-state state-game" v-if="gameState === 'game'">
+            
+            <div class="game-layout-container">
+                    
+                <!-- Left UI Column (Header in Portrait) -->
+                <div class="game-ui game-ui-left">
+                    <header class="game-header">
+                        <div class="header-info">Player: {{ formattedPlayerID }}</div>
+                        <div class="header-attempts">Attempts Left: {{ attemptsLeft }}/{{ totalAttempts }}</div>
+                    </header>
+                    <img src="./icon_info.png" alt="Info" class="info-icon" @click="toggleInstructions(true)">
+                    
+                    <!-- Timer (Hanya tampil di landscape) -->
+                    <div class="timer-container landscape-only">
+                        <div class="timer-text">TIME: {{ timer }}s</div>
+                        <div class="timer-progress-bar">
+                            <div class="timer-progress" :style="timerStyle"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center Column (Grid + Timer in Portrait) -->
+                <div class="game-main-column">
+                    <!-- Timer (Hanya tampil di portrait) -->
+                    <div class="timer-container portrait-only">
+                        <div class="timer-text">TIME: {{ timer }}s</div>
+                        <div class="timer-progress-bar">
+                            <div class="timer-progress" :style="timerStyle"></div>
+                        </div>
+                    </div>
+
+                    <!-- Card Grid (Selalu di tengah) -->
+                    <main class="card-grid">
+                        <div 
+                            class="card" 
+                            v-for="card in cards" 
+                            :key="card.id"
+                            :class="{ 'is-flipped': card.isFlipped, 'is-matched': card.isMatched, 'is-locked': isGameLocked }"
+                            @click="flipCard(card)"
+                        >
+                            <div class="card-inner">
+                                <div class="card-face card-back"></div>
+                                <div class="card-face card-front">
+                                    <img :src="card.img" :alt="card.name" class="card-image">
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+
+                <!-- Right UI Column (Footer in Portrait) -->
+                <div class="game-ui game-ui-right">
+                    <footer class="game-footer">
+                        <div class="match-counter">Matched: {{ matchedPairs }}/6</div>
+                    </footer>
+                    <div class="deco-images">
+                       <img src="./deco_spatula.png" alt="Spatula" class="deco-image deco-spatula">
+                       <img src="./deco_chef_hat.png" alt="Chef Hat" class="deco-image deco-chef-hat">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- STATE 4 & 5: End Game Modal (Success / Fail) -->
+        <div class="modal-overlay" v-if="gameState === 'success' || gameState === 'fail'">
+            <div class="modal-content end-game-content">
+                
+                <template v-if="gameState === 'success'">
+                    <h2 class="modal-title">GREAT JOB!</h2>
+                    <div class="treasure-chest" :class="showTreasureOpen ? 'treasure-open' : 'treasure-closed'"></div>
+                    <template v-if="showReward">
+                        <template v-if="lastGameResult.gotVoucher">
+                            <p class="modal-text" style="text-align: center;">Congratulations!<br>You won a 50% OFF Voucher for Nasi Goreng Ayam!</p>
+                            <img src="./reward_voucher.png" alt="Voucher" class="voucher-image">
+                        </template>
+                        <template v-else>
+                            <p class="modal-text" style="text-align: center;">Thanks for playing!</p>
+                        </template>
+                    </template>
+                </template>
+
+                <template v-if="gameState === 'fail'">
+                    <h2 class="modal-title" style="color: var(--color-primary-dark);">Time's Up!</h2>
+                    <p class="modal-text" style="text-align: center;">Try Again!</p>
+                </template>
+
+                <button 
+                    class="pixel-button pixel-button-small" 
+                    @click="tryAgain" 
+                    :disabled="attemptsLeft <= 0"
+                    style="margin-top: 20px;"
+                >
+                    {{ attemptsLeft > 0 ? 'TRY AGAIN' : 'GAME OVER' }}
+                </button>
+            </div>
+        </div>
+
+        <!-- Instructions Modal -->
+        <div class="modal-overlay" v-if="showInstructions">
+            <div class="modal-content">
+                <button class="modal-close-button" @click="toggleInstructions(false)">
+                    <img src="./icon_close.png" alt="Close" class="modal-close-icon">
+                </button>
+                <h2 class="modal-title">HOW TO PLAY</h2>
+                <div class="modal-text">
+                    <ul>
+                        <li>Click START GAME to begin.</li>
+                        <li>Flip cards to find matching ingredients.</li>
+                        <li>Match all 6 pairs within 25 seconds.</li>
+                        <li>Complete the challenge to win prizes!</li>
+                        <li>Good luck!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        const CARD_ITEMS = [
+            { name: 'rice', img: './card_item_rice.png' },
+            { name: 'kecap', img: './card_item_kecap.png' },
+            { name: 'egg', img: './card_item_egg.png' },
+            { name: 'shallot', img: './card_item_shallot.png' },
+            { name: 'garlic', img: './card_item_garlic.png' },
+            { name: 'chicken', img: './card_item_chicken.png' }
+        ];
+
+        const TOTAL_ATTEMPTS_POOL = 1200;
+        const GAME_TIME_LIMIT = 25; 
+        const VOUCHER_WINNERS = [
+            50, 150, 300, 450, 600, 750, 900, 1000, 1100, 1200
+        ];
+        
+        createApp({
+            data() {
+                return {
+                    gameState: 'landing', 
+                    showInstructions: false,
+                    isGameLocked: false, 
+                    
+                    totalAttempts: TOTAL_ATTEMPTS_POOL,
+                    currentAttempt: 0,
+                    playersWonVoucher: [], 
+                    
+                    cards: [],
+                    flippedCards: [],
+                    matchedPairs: 0,
+                    timer: GAME_TIME_LIMIT,
+                    timerInterval: null,
+                    
+                    lastGameResult: {
+                        won: false,
+                        gotVoucher: false
+                    },
+                    showTreasureOpen: false,
+                    showReward: false,
+                    showConfetti: false
+                }
+            },
+            
+            computed: {
+                formattedPlayerID() {
+                    const idToShow = this.gameState === 'landing' ? this.currentAttempt + 1 : this.currentAttempt;
+                    return 'P' + String(idToShow).padStart(4, '0');
+                },
+                
+                attemptsLeft() {
+                    return this.totalAttempts - this.currentAttempt;
+                },
+                
+                appClasses() {
+                    return {
+                        'app-container': true,
+                        [`state-${this.gameState}`]: true
+                    }
+                },
+                
+                timerStyle() {
+                    const percentage = (this.timer / GAME_TIME_LIMIT) * 100;
+                    let color = 'var(--color-timer-good)';
+                    if (percentage < 20) {
+                        color = 'var(--color-timer-danger)';
+                    } else if (percentage < 40) {
+                        color = 'var(--color-timer-warn)';
+                    }
+                    
+                    return {
+                        width: percentage + '%',
+                        backgroundColor: color
+                    };
+                }
+            },
+            
+            watch: {
+                matchedPairs(newVal) {
+                    if (newVal === 6) {
+                        this.endGame(true);
+                    }
+                },
+                
+                gameState(newState) {
+                    if (newState === 'success') {
+                        this.runSuccessAnimation();
+                    }
+                }
+            },
+
+            methods: {
+                // --- 1. Backend & Data Management ---
+                
+                loadGameData() {
+                    const savedAttempt = localStorage.getItem('komars_currentAttempt');
+                    const savedWinners = localStorage.getItem('komars_playersWonVoucher');
+                    
+                    this.currentAttempt = savedAttempt ? parseInt(savedAttempt, 10) : 0;
+                    this.playersWonVoucher = savedWinners ? JSON.parse(savedWinners) : [];
+                    
+                    if (this.currentAttempt >= this.totalAttempts) {
+                        this.currentAttempt = this.totalAttempts;
+                    }
+                },
+                
+                saveGameData() {
+                    localStorage.setItem('komars_currentAttempt', this.currentAttempt);
+                    localStorage.setItem('komars_playersWonVoucher', JSON.stringify(this.playersWonVoucher));
+                },
+
+                /**
+                 * REVISI: Fungsi untuk mereset attempts
+                 */
+                resetAttempts() {
+                    // Tidak menggunakan confirm() sesuai aturan
+                    console.warn("Attempt data reset initiated by user.");
+                    this.currentAttempt = 0;
+                    this.playersWonVoucher = [];
+                    this.saveGameData();
+                    // Paksa Vue untuk re-render jika data tidak reaktif (meskipun seharusnya)
+                    this.$forceUpdate(); 
+                },
+
+                // --- 2. Game Flow ---
+
+                startGame() {
+                    if (this.attemptsLeft <= 0) return;
+                    
+                    this.currentAttempt++;
+                    
+                    this.gameState = 'game';
+                    this.isGameLocked = false;
+                    this.matchedPairs = 0;
+                    this.flippedCards = [];
+                    this.timer = GAME_TIME_LIMIT;
+                    
+                    this.showTreasureOpen = false;
+                    this.showReward = false;
+                    this.showConfetti = false;
+
+                    this.initializeCards();
+                    this.startTimer();
+                },
+                
+                initializeCards() {
+                    const gameCards = [...CARD_ITEMS, ...CARD_ITEMS];
+                    
+                    for (let i = gameCards.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [gameCards[i], gameCards[j]] = [gameCards[j], gameCards[i]];
+                    }
+                    
+                    this.cards = gameCards.map((item, index) => ({
+                        id: index,
+                        name: item.name,
+                        img: item.img,
+                        isFlipped: false,
+                        isMatched: false
+                    }));
+                },
+
+                endGame(didWin) {
+                    clearInterval(this.timerInterval);
+                    this.isGameLocked = true; 
+                    
+                    this.lastGameResult.won = didWin;
+                    
+                    if (didWin) {
+                        const isWinner = VOUCHER_WINNERS.includes(this.currentAttempt);
+                        const hasAlreadyWon = this.playersWonVoucher.includes(this.formattedPlayerID);
+                        
+                        if (isWinner && !hasAlreadyWon) {
+                            this.lastGameResult.gotVoucher = true;
+                            this.playersWonVoucher.push(this.formattedPlayerID);
+                        } else {
+                            this.lastGameResult.gotVoucher = false;
+                        }
+                        
+                        this.gameState = 'success';
+                        
+                    } else { 
+                        this.lastGameResult.gotVoucher = false;
+                        this.gameState = 'fail';
+                    }
+                    
+                    this.saveGameData();
+                },
+
+                tryAgain() {
+                    this.gameState = 'landing';
+                    this.isGameLocked = false;
+                    this.loadGameData();
+                },
+                
+                // --- 3. Game Mechanics ---
+
+                startTimer() {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = setInterval(() => {
+                        this.timer--;
+                        if (this.timer <= 0) {
+                            clearInterval(this.timerInterval);
+                            if (this.gameState === 'game') {
+                                this.endGame(false);
+                            }
+                        }
+                    }, 1000);
+                },
+                
+                flipCard(card) {
+                    if (this.isGameLocked || card.isFlipped || card.isMatched || this.flippedCards.length === 2) {
+                        return;
+                    }
+                    
+                    card.isFlipped = true;
+                    this.flippedCards.push(card);
+                    
+                    if (this.flippedCards.length === 2) {
+                        this.isGameLocked = true; 
+                        this.checkForMatch();
+                    }
+                },
+                
+                checkForMatch() {
+                    const [card1, card2] = this.flippedCards;
+                    
+                    if (card1.name === card2.name) {
+                        setTimeout(() => {
+                            card1.isMatched = true;
+                            card2.isMatched = true;
+                            this.matchedPairs++;
+                            this.flippedCards = [];
+                            this.isGameLocked = false;
+                        }, 500);
+                    } else {
+                        setTimeout(() => {
+                            card1.isFlipped = false;
+                            card2.isFlipped = false;
+                            this.flippedCards = [];
+                            this.isGameLocked = false;
+                        }, 1000);
+                    }
+                },
+                
+                // --- 4. UI & Animations ---
+                
+                toggleInstructions(show) {
+                    this.showInstructions = show;
+                },
+                
+                runSuccessAnimation() {
+                    this.showTreasureOpen = false;
+                    this.showReward = false;
+                    this.showConfetti = false;
+                    
+                    setTimeout(() => {
+                        this.showTreasureOpen = true;
+                    }, 1000);
+                    
+                    setTimeout(() => {
+                        this.showReward = true;
+                        this.showConfetti = true;
+                        this.createConfetti();
+                    }, 1500);
+                },
+                
+                createConfetti() {
+                    const container = document.getElementById('confetti-container');
+                    if (!container) return;
+                    
+                    const colors = ['#FF6B35', '#F7931E', '#FDC830', '#7CB342', '#FFFFFF'];
+                    for (let i = 0; i < 100; i++) {
+                        const confetti = document.createElement('div');
+                        confetti.className = 'confetti';
+                        confetti.style.left = Math.random() * 100 + 'vw';
+                        confetti.style.animationDelay = Math.random() * 5 + 's';
+                        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        const fallDuration = (Math.random() * 3) + 3;
+                        confetti.style.animation = `fall ${fallDuration}s linear infinite`;
+                        
+                        container.appendChild(confetti);
+
+                        setTimeout(() => {
+                            confetti.remove();
+                        }, fallDuration * 1000 + 1000);
+                    }
+                }
+            },
+            
+            mounted() {
+                this.loadGameData();
+            }
+        }).mount('#app')
+    </script>
+
+</body>
+</html>
