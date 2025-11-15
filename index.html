@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Komar's Flip the Card</title>
     
-    <!-- Load Pixel Font -->
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    
-    <!-- Load Vue.js Framework -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
     <style>
@@ -21,13 +18,14 @@
             --color-secondary: #F7931E;
             --color-highlight: #FDC830;
             --color-brown: #8B4513;
+            --color-brown-dark: #5a2d0b;
             --color-green-match: #7CB342;
             --color-text-light: #FFFFFF;
-            --color-text-dark: #2c2c2c;
+            --color-text-dark: #2c2c2a;
             --color-card-front-bg: #f5eeda; /* Warm light beige */
             
             --color-overlay: rgba(0, 0, 0, 0.6);
-            --color-overlay-game: rgba(0, 0, 0, 0.7); /* Darker overlay for game */
+            --color-overlay-game: rgba(0, 0, 0, 0.7);
             
             --color-timer-good: #7CB342;
             --color-timer-warn: #F7931E;
@@ -46,12 +44,11 @@
         html, body {
             height: 100%;
             width: 100%;
-            overflow: hidden; /* No scrolling */
+            overflow: hidden;
             background-color: var(--color-text-dark);
             color: var(--color-text-light);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            text-rendering: optimizeLegibility;
         }
 
         /* --- 2. App Container & States --- */
@@ -63,24 +60,16 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            /* REVISI: Pastikan background menutupi layar tanpa repeat */
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             transition: background-image 0.5s ease-in-out;
         }
         
-        .state-landing {
-            background-image: url('./bg_landing.png');
-        }
-        .state-game {
-            background-image: url('./bg_game.png');
-        }
-        .state-success, .state-fail {
-            background-image: url('./bg_game.png');
-        }
+        .state-landing { background-image: url('./bg_landing.png'); }
+        .state-game { background-image: url('./bg_game.png'); }
+        .state-success, .state-fail { background-image: url('./bg_game.png'); }
 
-        /* Dark shadow overlay */
         .app-container::before {
             content: '';
             position: absolute;
@@ -93,7 +82,10 @@
             transition: background-color 0.5s ease;
         }
         
-        /* REVISI: Overlay lebih gelap untuk state game */
+        .state-landing.app-container::before {
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.7) 100%);
+        }
+        
         .state-game.app-container::before {
             background-color: var(--color-overlay-game);
         }
@@ -108,8 +100,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 2vh 2vw;
+            padding: 1vh 2vw;
         }
 
         /* --- 3. Pixel Button Component --- */
@@ -128,7 +119,6 @@
             transition: transform 0.1s ease, box-shadow 0.1s ease;
             image-rendering: pixelated;
         }
-
         .pixel-button:hover, .pixel-button:focus {
             transform: translate(2px, 2px);
             box-shadow: 
@@ -136,14 +126,11 @@
                 2px 2px 0px 0px var(--color-text-dark);
             outline: none;
         }
-
         .pixel-button:active {
             transform: translate(4px, 4px);
             box-shadow: inset 0px 0px 0px 0px var(--color-primary-dark);
         }
-
-        .pixel-button:disabled,
-        .pixel-button.disabled {
+        .pixel-button:disabled, .pixel-button.disabled {
             background-color: #888;
             box-shadow: 
                 inset -4px -4px 0px 0px #555,
@@ -151,19 +138,16 @@
             cursor: not-allowed;
             opacity: 0.7;
         }
-        
         .pixel-button-small {
             font-size: clamp(12px, 2vw, 16px);
             padding: 10px 20px;
         }
-        
-        /* REVISI: Tombol Reset Baru */
         .reset-button {
             font-size: 10px;
             padding: 6px 10px;
-            background-color: var(--color-primary-dark); /* Red/danger color */
+            background-color: var(--color-primary-dark);
             box-shadow: 
-                inset -2px -2px 0px 0px #8B0000, /* Darker red */
+                inset -2px -2px 0px 0px #8B0000,
                 2px 2px 0px 0px var(--color-text-dark);
             margin-left: 15px;
             color: var(--color-text-light);
@@ -187,6 +171,14 @@
             gap: 20px;
         }
         
+        .state-landing .pixel-button {
+            animation: breathe 2s ease-in-out infinite;
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
         .game-title {
             font-size: clamp(24px, 6vw, 48px);
             color: var(--color-text-light);
@@ -194,8 +186,6 @@
             text-align: center;
             line-height: 1.4;
         }
-        
-        /* REVISI: Kontainer untuk info attempts & reset */
         .landing-attempts-container {
             display: flex;
             align-items: center;
@@ -209,114 +199,65 @@
              font-size: clamp(10px, 2.5vw, 14px);
         }
 
+        /* --- 5. Game State --- */
+        .state-game {
+            justify-content: space-between;
+            padding: 1vh 2vw; 
+        }
 
-        /* --- 5. Game State (Portrait & Landscape) --- */
-        
-        /* REVISI: Kontainer layout utama untuk game */
-        .game-layout-container {
-            display: flex;
-            flex-direction: column; /* Default: Portrait */
+        .game-top-bar {
             width: 100%;
-            height: 100%;
-            max-width: 500px; /* Max width for portrait */
-            margin: 0 auto;
-            padding: 2vh 4vw;
+            display: flex;
             justify-content: space-between;
+            align-items: stretch; /* Ubah agar tingginya sama */
+            gap: 10px;
+            flex-shrink: 0;
         }
         
-        /* Kolom UI (kiri/kanan di landscape, atas/bawah di portrait) */
-        .game-ui {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        /* Kolom Kiri / Header */
-        .game-ui-left {
-            width: 100%;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .game-header {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .header-info, .header-attempts {
+        .header-box {
+            background: var(--color-overlay-light);
+            border: 4px solid var(--color-text-dark);
+            box-shadow: 
+                inset -3px -3px 0px 0px var(--color-brown-dark),
+                3px 3px 0px 0px var(--color-text-dark);
+            padding: 8px 12px;
             font-size: clamp(10px, 2.5vw, 14px);
-            background: var(--color-overlay-light);
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 2px solid var(--color-brown);
-        }
-        .info-icon {
-            width: clamp(28px, 6vw, 40px);
-            height: clamp(28px, 6vw, 40px);
-            cursor: pointer;
-            image-rendering: pixelated;
-            transition: transform 0.2s;
-        }
-        .info-icon:hover {
-            transform: scale(1.1);
+            white-space: nowrap;
+            display: flex; /* Tambahkan flex */
+            flex-direction: column; /* Atur konten di dalam */
+            justify-content: center; /* Pusatkan konten */
         }
         
-        /* Kolom Tengah (Grid & Timer) */
-        .game-main-column {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            /* margin: 2vh 0; */
+        .game-top-bar .match-counter {
+            text-align: left;
+            /* REVISI: Kecilkan */
+            flex-grow: 0.5;
+            align-items: flex-start; /* Sejajarkan teks */
         }
         
-        /* Kolom Kanan / Footer */
-        .game-ui-right {
-            width: 100%;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
+        .game-top-bar .player-info {
+            text-align: right;
+            /* REVISI: Kecilkan */
+            flex-grow: 0.5;
+            align-items: flex-end; /* Sejajarkan teks */
         }
-        .game-footer {
-            display: flex;
-        }
-        .match-counter {
-            font-size: clamp(12px, 3vw, 16px);
-            background: var(--color-overlay-light);
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 2px solid var(--color-brown);
-        }
-        .deco-images {
-            display: flex;
-            gap: 10px;
-        }
-        .deco-image {
-            width: clamp(30px, 8vw, 50px);
-            height: auto;
-            image-rendering: pixelated;
-        }
-        .deco-spatula { transform: rotate(-30deg); }
-        .deco-chef-hat { transform: rotate(20deg); }
 
-        /* Timer */
-        .timer-container {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
+        .game-top-bar .timer-container {
             align-items: center;
             gap: 5px;
-            margin: 10px 0;
+            padding: 5px 10px; 
+            flex-shrink: 0;
+            /* REVISI: Lebarkan */
+            flex-grow: 1; 
         }
         .timer-text {
-            font-size: clamp(16px, 4vw, 20px);
+            font-size: clamp(12px, 3vw, 16px);
             color: var(--color-highlight);
         }
         .timer-progress-bar {
             width: 100%;
-            height: 15px;
+            min-width: 80px; /* Lebar minimum untuk timer */
+            height: 10px;
             background-color: var(--color-text-dark);
             border: 2px solid var(--color-brown);
             border-radius: 4px;
@@ -329,28 +270,51 @@
             transition: width 0.2s linear, background-color 0.5s ease;
         }
 
-        /* Card Grid */
-        .card-grid {
+        .game-board-container {
             width: 100%;
+            flex-grow: 1;
+            min-height: 0; 
+            margin: 1vh auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .game-board-frame {
+            background-color: var(--color-brown);
+            border: 4px solid var(--color-text-dark);
+            box-shadow: 
+                inset -6px -6px 0px 0px var(--color-brown-dark),
+                6px 6px 0px 0px var(--color-text-dark);
+            padding: clamp(10px, 2vw, 15px);
+            border-radius: 8px;
+            max-width: 100%;
+            max-height: 100%;
+            
+            /* REVISI: Tetapkan aspect-ratio untuk frame 4x3 (4*5 : 3*7) */
+            aspect-ratio: 20 / 21; 
+            /* REVISI: Pastikan lebar di-clamp agar tidak terlalu besar */
+            width: auto; 
+            height: 100%;
+        }
+        
+        .card-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* Default 3x4 */
-            grid-template-rows: repeat(4, 1fr);
-            gap: clamp(8px, 2vw, 12px);
-            aspect-ratio: 3 / 4; /* Default 3:4 */
-            max-height: 70vh;
+            /* REVISI: 4 kolom, 3 baris */
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: clamp(8px, 1.5vw, 12px);
+            width: 100%;
+            height: 100%; /* Isi frame */
         }
 
-        /* Helpers untuk menyembunyikan/menampilkan elemen di layout berbeda */
-        .landscape-only { display: none; }
-        .portrait-only { display: block; }
-
-        /* Card Styling */
         .card {
             perspective: 1000px;
             cursor: pointer;
             width: 100%;
             height: 100%;
-            aspect-ratio: 5 / 7;
+            /* REVISI: Hapus aspect-ratio dari kartu, pindah ke frame */
+            /* aspect-ratio: 5 / 7; */ 
         }
         .card-inner {
             position: relative;
@@ -369,29 +333,29 @@
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
             border-radius: 8px;
-            background-size: contain;
             background-position: center;
-            background-repeat: no-repeat;
             image-rendering: pixelated;
             border: 2px solid var(--color-brown);
             overflow: hidden;
         }
         
-        /* REVISI: Card back tanpa border atau BG color tambahan */
         .card-back {
             background-image: url('./card_back.png');
-            background-color: transparent;
-            border: none;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border: 2px solid var(--color-brown);
         }
         
         .card-front {
-            /* REVISI: Ganti BG putih ke krem muda */
             background-color: var(--color-card-front-bg); 
             transform: rotateY(180deg);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color 0.3s, box-shadow 0.3s;
+            transition: background-color 0.3s, box-shadow 0.5s ease-out;
+            background-size: contain;
+            background-repeat: no-repeat;
         }
         .card-image {
             width: 90%;
@@ -400,7 +364,6 @@
             image-rendering: pixelated;
         }
         
-        /* Matched State */
         .card.is-matched .card-inner {
             transform: rotateY(180deg) scale(1.05);
             pointer-events: none;
@@ -413,9 +376,35 @@
             pointer-events: none;
             opacity: 0.8;
         }
-
+        
+        .game-bottom-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .game-bottom-bar .attempts-counter {
+            flex-grow: 1;
+            align-items: flex-start;
+        }
+        
+        .info-icon {
+            width: clamp(28px, 8vw, 40px);
+            height: clamp(28px, 8vw, 40px);
+            cursor: pointer;
+            image-rendering: pixelated;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        .info-icon:hover {
+            transform: scale(1.1);
+        }
 
         /* --- 6. Modals (Instructions & End Game) --- */
+        
         .modal-overlay {
             position: absolute;
             top: 0;
@@ -428,12 +417,13 @@
             justify-content: center;
             padding: 20px;
             z-index: 100;
+            animation: fadeIn 0.3s ease-out;
         }
         .modal-content {
             background-color: var(--color-brown);
             border: 4px solid var(--color-text-dark);
             box-shadow: 
-                inset -6px -6px 0px 0px #5a2d0b,
+                inset -6px -6px 0px 0px var(--color-brown-dark),
                 6px 6px 0px 0px var(--color-text-dark);
             padding: 30px;
             width: 100%;
@@ -441,7 +431,17 @@
             position: relative;
             text-align: center;
             color: var(--color-text-light);
+            animation: scaleUp 0.3s ease-out;
         }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes scaleUp {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
         .modal-close-button {
             position: absolute;
             top: -15px;
@@ -479,7 +479,6 @@
         .modal-text ul { list-style-position: inside; padding-left: 10px; }
         .modal-text li { margin-bottom: 10px; }
 
-        /* End Game Modal */
         .end-game-content {
             display: flex;
             flex-direction: column;
@@ -508,6 +507,12 @@
             image-rendering: pixelated;
             margin-top: 10px;
             animation: reveal 0.5s ease-out;
+        }
+        
+        .fail-icon {
+            width: 60px;
+            height: 60px;
+            fill: var(--color-highlight);
         }
 
         @keyframes bounce {
@@ -555,83 +560,18 @@
         }
 
         /* --- 8. Responsive (Landscape) --- */
-        /* REVISI: Tata letak landscape baru yang lebih baik */
-        @media (orientation: landscape) and (max-height: 600px) {
-            .state-game {
-                padding: 2vh 3vw;
-            }
-            .game-layout-container {
-                flex-direction: row; /* Layout baris */
-                max-width: 1000px; /* Lebar max di landscape */
-                align-items: center;
-                gap: 2vw;
-            }
-            
-            /* Kolom Kiri */
-            .game-ui-left {
-                width: 25%;
-                height: 100%;
-                flex-direction: column;
-                justify-content: space-around;
-            }
-            .game-header {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            /* Kolom Tengah */
-            .game-main-column {
-                width: 46%; /* Sedikit lebih kecil untuk memberi ruang */
-                height: 100%;
-                justify-content: center;
-                margin: 0;
-            }
-            
-            /* Kolom Kanan */
-            .game-ui-right {
-                width: 25%;
-                height: 100%;
-                flex-direction: column;
-                justify-content: space-around;
-            }
-            .game-footer {
-                margin: 0;
-            }
-            .deco-images {
-                flex-direction: column;
-                gap: 20px;
-            }
-            .deco-image {
-                width: clamp(40px, 10vw, 70px);
-            }
-
-            /* Grid 4x3 di Landscape */
-            .card-grid {
-                grid-template-columns: repeat(4, 1fr);
-                grid-template-rows: repeat(3, 1fr);
-                aspect-ratio: 4 / 3;
-                max-height: 90vh; /* Pastikan pas di layar */
-            }
-
-            /* Pindahkan timer ke kiri & atur visibilitas */
-            .landscape-only { display: flex; }
-            .portrait-only { display: none; }
-        }
-        
-        /* Ukuran landscape yang lebih kecil (ponsel) */
         @media (orientation: landscape) and (max-height: 450px) {
-            .header-info, .header-attempts, .match-counter {
-                font-size: 10px;
-                padding: 5px 8px;
-            }
-            .timer-text { font-size: 14px; }
-            .timer-progress-bar { height: 10px; }
+            .game-top-bar { padding: 2px 8px; gap: 5px; }
+            .header-box { padding: 4px 8px; }
+            .game-bottom-bar { padding: 0 8px; }
+            .header-info, .header-attempts { font-size: 10px; }
+            .timer-text { font-size: 10px; }
+            .timer-progress-bar { height: 8px; }
+            .match-counter { font-size: 10px; padding: 5px 8px; }
             .info-icon { width: 24px; height: 24px; }
-            .deco-image { width: 30px; }
-            .game-layout-container { gap: 1.5vw; }
-            .game-ui-left { width: 28%; }
-            .game-main-column { width: 42%; }
-            .game-ui-right { width: 28%; }
+            
+            .game-board-frame { padding: 10px; }
+            .card-grid { gap: 8px; }
         }
 
         /* --- 9. Image Preloader --- */
@@ -648,7 +588,6 @@
 </head>
 <body>
 
-    <!-- Main Vue App Container -->
     <div id="app" :class="appClasses" v-cloak>
 
         <!-- Image Preloader -->
@@ -671,7 +610,6 @@
             <img src="./treasure_chest_open.png" alt="Preload">
         </div>
 
-        <!-- Confetti Container -->
         <div id="confetti-container" v-if="gameState === 'success' && showConfetti"></div>
 
         <!-- STATE 1: Landing Page -->
@@ -680,8 +618,6 @@
             <button class="pixel-button" @click="startGame" :disabled="attemptsLeft <= 0">
                 {{ attemptsLeft > 0 ? 'START GAME' : 'NO ATTEMPTS LEFT' }}
             </button>
-            
-            <!-- REVISI: Kontainer untuk Attempts & Reset -->
             <div class="landing-attempts-container" v-if="attemptsLeft > 0">
                 <span class="attempts-info-text">Attempts Left: {{ attemptsLeft }}/{{ totalAttempts }}</span>
                 <button class="reset-button" @click="resetAttempts">RESET</button>
@@ -689,45 +625,36 @@
         </div>
 
         <!-- STATE 2: Main Game Screen -->
-        <!-- REVISI: Struktur HTML baru untuk layout adaptif -->
         <div class="game-state state-game" v-if="gameState === 'game'">
             
-            <div class="game-layout-container">
-                    
-                <!-- Left UI Column (Header in Portrait) -->
-                <div class="game-ui game-ui-left">
-                    <header class="game-header">
-                        <div class="header-info">Player: {{ formattedPlayerID }}</div>
-                        <div class="header-attempts">Attempts Left: {{ attemptsLeft }}/{{ totalAttempts }}</div>
-                    </header>
-                    <img src="./icon_info.png" alt="Info" class="info-icon" @click="toggleInstructions(true)">
-                    
-                    <!-- Timer (Hanya tampil di landscape) -->
-                    <div class="timer-container landscape-only">
-                        <div class="timer-text">TIME: {{ timer }}s</div>
-                        <div class="timer-progress-bar">
-                            <div class="timer-progress" :style="timerStyle"></div>
-                        </div>
+            <!-- Top Bar -->
+            <header class="game-top-bar">
+                <!-- Kiri: Matched -->
+                <div class="header-box match-counter">
+                    Matched: {{ matchedPairs }}/6
+                </div>
+                <!-- Tengah: Timer -->
+                <div class="header-box timer-container">
+                    <div class="timer-text">TIME: {{ timer }}s</div>
+                    <div class="timer-progress-bar">
+                        <div class="timer-progress" :style="timerStyle"></div>
                     </div>
                 </div>
+                <!-- Kanan: Player ID -->
+                <div class="header-box player-info">
+                    Player: {{ formattedPlayerID }}
+                </div>
+            </header>
 
-                <!-- Center Column (Grid + Timer in Portrait) -->
-                <div class="game-main-column">
-                    <!-- Timer (Hanya tampil di portrait) -->
-                    <div class="timer-container portrait-only">
-                        <div class="timer-text">TIME: {{ timer }}s</div>
-                        <div class="timer-progress-bar">
-                            <div class="timer-progress" :style="timerStyle"></div>
-                        </div>
-                    </div>
-
-                    <!-- Card Grid (Selalu di tengah) -->
-                    <main class="card-grid">
+            <!-- Main Game Area -->
+            <main class="game-board-container">
+                <div class="game-board-frame">
+                    <div class="card-grid">
                         <div 
                             class="card" 
                             v-for="card in cards" 
                             :key="card.id"
-                            :class="{ 'is-flipped': card.isFlipped, 'is-matched': card.isMatched, 'is-locked': isGameLocked }"
+                            :class="{ 'is-flipped': card.isFlipped, 'is-matched': card.isMatched, 'is-locked': isGameLocked || isPaused }"
                             @click="flipCard(card)"
                         >
                             <div class="card-inner">
@@ -737,27 +664,24 @@
                                 </div>
                             </div>
                         </div>
-                    </main>
-                </div>
-
-                <!-- Right UI Column (Footer in Portrait) -->
-                <div class="game-ui game-ui-right">
-                    <footer class="game-footer">
-                        <div class="match-counter">Matched: {{ matchedPairs }}/6</div>
-                    </footer>
-                    <div class="deco-images">
-                       <img src="./deco_spatula.png" alt="Spatula" class="deco-image deco-spatula">
-                       <img src="./deco_chef_hat.png" alt="Chef Hat" class="deco-image deco-chef-hat">
                     </div>
                 </div>
+            </main>
 
-            </div>
+            <!-- Bottom Bar -->
+            <footer class="game-bottom-bar">
+                <!-- Kiri: Attempts -->
+                <div class="header-box attempts-counter">
+                    Attempts: {{ attemptsLeft }}/{{ totalAttempts }}
+                </div>
+                <!-- Kanan: Info Icon -->
+                <img src="./icon_info.png" alt="Info" class="info-icon" @click="toggleInstructions(true)">
+            </footer>
         </div>
 
         <!-- STATE 4 & 5: End Game Modal (Success / Fail) -->
         <div class="modal-overlay" v-if="gameState === 'success' || gameState === 'fail'">
             <div class="modal-content end-game-content">
-                
                 <template v-if="gameState === 'success'">
                     <h2 class="modal-title">GREAT JOB!</h2>
                     <div class="treasure-chest" :class="showTreasureOpen ? 'treasure-open' : 'treasure-closed'"></div>
@@ -771,12 +695,13 @@
                         </template>
                     </template>
                 </template>
-
                 <template v-if="gameState === 'fail'">
-                    <h2 class="modal-title" style="color: var(--color-primary-dark);">Time's Up!</h2>
-                    <p class="modal-text" style="text-align: center;">Try Again!</p>
+                    <svg class="fail-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                        <path d="M16 4C9.373 4 4 9.373 4 16s5.373 12 12 12 12-5.373 12-12S22.627 4 16 4zm0 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S6 21.523 6 16 10.477 6 16 6zm-2 4v8h2v-6h6v-2h-8z" fill-rule="evenodd" image-rendering="pixelated"/>
+                    </svg>
+                    <h2 class="modal-title" style="color: var(--color-highlight); margin-top: 10px;">Time's Up!</h2>
+                    
                 </template>
-
                 <button 
                     class="pixel-button pixel-button-small" 
                     @click="tryAgain" 
@@ -833,6 +758,7 @@
                     gameState: 'landing', 
                     showInstructions: false,
                     isGameLocked: false, 
+                    isPaused: false,
                     
                     totalAttempts: TOTAL_ATTEMPTS_POOL,
                     currentAttempt: 0,
@@ -859,18 +785,15 @@
                     const idToShow = this.gameState === 'landing' ? this.currentAttempt + 1 : this.currentAttempt;
                     return 'P' + String(idToShow).padStart(4, '0');
                 },
-                
                 attemptsLeft() {
                     return this.totalAttempts - this.currentAttempt;
                 },
-                
                 appClasses() {
                     return {
                         'app-container': true,
                         [`state-${this.gameState}`]: true
                     }
                 },
-                
                 timerStyle() {
                     const percentage = (this.timer / GAME_TIME_LIMIT) * 100;
                     let color = 'var(--color-timer-good)';
@@ -879,7 +802,6 @@
                     } else if (percentage < 40) {
                         color = 'var(--color-timer-warn)';
                     }
-                    
                     return {
                         width: percentage + '%',
                         backgroundColor: color
@@ -893,7 +815,6 @@
                         this.endGame(true);
                     }
                 },
-                
                 gameState(newState) {
                     if (newState === 'success') {
                         this.runSuccessAnimation();
@@ -907,10 +828,8 @@
                 loadGameData() {
                     const savedAttempt = localStorage.getItem('komars_currentAttempt');
                     const savedWinners = localStorage.getItem('komars_playersWonVoucher');
-                    
                     this.currentAttempt = savedAttempt ? parseInt(savedAttempt, 10) : 0;
                     this.playersWonVoucher = savedWinners ? JSON.parse(savedWinners) : [];
-                    
                     if (this.currentAttempt >= this.totalAttempts) {
                         this.currentAttempt = this.totalAttempts;
                     }
@@ -921,16 +840,11 @@
                     localStorage.setItem('komars_playersWonVoucher', JSON.stringify(this.playersWonVoucher));
                 },
 
-                /**
-                 * REVISI: Fungsi untuk mereset attempts
-                 */
                 resetAttempts() {
-                    // Tidak menggunakan confirm() sesuai aturan
                     console.warn("Attempt data reset initiated by user.");
                     this.currentAttempt = 0;
                     this.playersWonVoucher = [];
                     this.saveGameData();
-                    // Paksa Vue untuk re-render jika data tidak reaktif (meskipun seharusnya)
                     this.$forceUpdate(); 
                 },
 
@@ -938,31 +852,26 @@
 
                 startGame() {
                     if (this.attemptsLeft <= 0) return;
-                    
                     this.currentAttempt++;
-                    
                     this.gameState = 'game';
                     this.isGameLocked = false;
+                    this.isPaused = false;
                     this.matchedPairs = 0;
                     this.flippedCards = [];
                     this.timer = GAME_TIME_LIMIT;
-                    
                     this.showTreasureOpen = false;
                     this.showReward = false;
                     this.showConfetti = false;
-
                     this.initializeCards();
                     this.startTimer();
                 },
                 
                 initializeCards() {
                     const gameCards = [...CARD_ITEMS, ...CARD_ITEMS];
-                    
                     for (let i = gameCards.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [gameCards[i], gameCards[j]] = [gameCards[j], gameCards[i]];
                     }
-                    
                     this.cards = gameCards.map((item, index) => ({
                         id: index,
                         name: item.name,
@@ -975,7 +884,6 @@
                 endGame(didWin) {
                     clearInterval(this.timerInterval);
                     this.isGameLocked = true; 
-                    
                     this.lastGameResult.won = didWin;
                     
                     if (didWin) {
@@ -988,14 +896,11 @@
                         } else {
                             this.lastGameResult.gotVoucher = false;
                         }
-                        
                         this.gameState = 'success';
-                        
                     } else { 
                         this.lastGameResult.gotVoucher = false;
                         this.gameState = 'fail';
                     }
-                    
                     this.saveGameData();
                 },
 
@@ -1010,6 +915,10 @@
                 startTimer() {
                     clearInterval(this.timerInterval);
                     this.timerInterval = setInterval(() => {
+                        if (this.isPaused) {
+                            return;
+                        }
+                        
                         this.timer--;
                         if (this.timer <= 0) {
                             clearInterval(this.timerInterval);
@@ -1021,7 +930,7 @@
                 },
                 
                 flipCard(card) {
-                    if (this.isGameLocked || card.isFlipped || card.isMatched || this.flippedCards.length === 2) {
+                    if (this.isGameLocked || card.isFlipped || card.isMatched || this.flippedCards.length === 2 || this.isPaused) {
                         return;
                     }
                     
@@ -1059,6 +968,7 @@
                 
                 toggleInstructions(show) {
                     this.showInstructions = show;
+                    this.isPaused = show;
                 },
                 
                 runSuccessAnimation() {
